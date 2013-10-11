@@ -1,4 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+
+# File: webserver.py
+# Description: cn-atda6 socket programming assignment 1, python version
+#              a simple webserver which accepts a file path and return that file
+#              in a http response
+# Author: Burgess Wong
+# Created Date: 2013-9-26
 
 import io
 import mimetypes
@@ -32,8 +39,7 @@ if __name__ == '__main__':
 
     # infinite loop waiting for and processing requests
     while 1:
-        print('---Listening---')
-        print('')
+        print('---Listening---\n')
 
         connect_sock, address = server_sock.accept()
         request = connect_sock.recv(4096)
@@ -78,6 +84,5 @@ if __name__ == '__main__':
 
         connect_sock.close()
 
-        print('---Connection with IP ' + str(address[0]) + ' closed')
-        print('')
+        print('---Connection with IP ' + str(address[0]) + ' closed\n')
 

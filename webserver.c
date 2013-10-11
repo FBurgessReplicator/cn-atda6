@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 	cliaddrlen = sizeof(cliaddr);
 	connfd = Accept(listenfd, (struct sockaddr *)&cliaddr, &cliaddrlen);
 
-	inet_ntop(AF_INET, &cliaddr, cliaddrip, INET_ADDRSTRLEN);
+	Inet_ntop(AF_INET, &cliaddr, cliaddrip, INET_ADDRSTRLEN);
 
 	fprintf(stdout, "%s%s\n", "---Request comes from IP: ", cliaddrip);
 	
@@ -112,4 +112,3 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 	
-		    

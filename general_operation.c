@@ -70,6 +70,35 @@ int Accept(int sockfd, struct sockaddr *cliaddr, socklen_t *addrlen) {
     return clisockfd;
 }
 
+ssize_t Recvfrom(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *from, socklen_t *addrlen) {
+    int n;
+    if ((n = recvfrom(sockfd, buf, nbytes, flags, from, addrlen)) < 0)
+	err_sys("recvfrom error");
+
+    return n;
+}
+
+ssize_t Sendto(int sockfd, const void *buf, size_t nbytes, int flags, const struct sockaddr *to, socklen_t addrlen) {
+    if (sendto(sockfd, buf, nbytes, flags, to, addrlen) != nbytes)
+	err_sys("sendto error");
+
+    return nbytes;
+}
+
+int Inet_pton(int family, const char *strptr, struct in_addr *addrptr) {
+    if (inet_pton(family, strptr, addrptr) != 1)
+	err_sys("inet_pton error");
+
+    return 1;
+}
+
+const char *Inet_ntop(int family, const void *addrptr, char *strptr, size_t len) {
+    if (inet_ntop(family, addrptr, strptr, len) == NULL)
+	err_sys("inet_ntop error");
+
+    return strptr;
+}
+
 /* error functions */
 
 static void err_doit(int, int, const char *, va_list);

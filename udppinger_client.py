@@ -8,6 +8,7 @@
 
 import select
 import socket
+import sys
 import time
 
 def checkresp(client_sock, i):
@@ -19,13 +20,13 @@ def checkresp(client_sock, i):
 if __name__ == '__main__':
 
     # initialize the socket
-    server_ip = '127.0.0.1'
-    server_sock = 8080
+    server_ip = sys.argv[1]
+    server_port = 8080
     client_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # send 10 ping messages
     for i in range(0, 10):
-        client_sock.sendto(('ping%.2d' % i).encode('utf-8'), (server_ip, server_sock))
+        client_sock.sendto(('ping%.2d' % i).encode('utf-8'), (server_ip, server_port))
 
         resttime = 1
         firsttime = time.time()

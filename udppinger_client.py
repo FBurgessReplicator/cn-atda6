@@ -19,6 +19,10 @@ def checkresp(client_sock, i):
 
 if __name__ == '__main__':
 
+    if len(sys.argv) != 2:
+        print("usage: udppinger_client.py <IPaddress>")
+        exit()
+    
     # initialize the socket
     server_ip = sys.argv[1]
     server_port = 8080

@@ -12,8 +12,7 @@
 #define PROXY_PORT 8080
 
 struct header_field {
-    char *name;
-    char *value;
+    const char *name, *value;
     int nlen, vlen;
     struct header_field *next;
 };
@@ -26,8 +25,8 @@ inline int max(int i, int j){
     return i > j ? i : j;
 }
 
-void get_start_fields(char *start_line, int sllen, char **first_field, int *flen, \
-		      char **second_field, int *slen, char **third_field, int *tlen) {
+void get_start_fields(const char *start_line, int sllen, const char **first_field, int *flen, \
+		      const char **second_field, int *slen, const char **third_field, int *tlen) {
     *first_field = start_line;
     *second_field = strstr(*first_field, " ");
     *second_field += 1;
@@ -38,9 +37,9 @@ void get_start_fields(char *start_line, int sllen, char **first_field, int *flen
     *tlen = sllen - *flen - *slen - 2;
 }
 
-struct header_field *get_header_fields(char *header_lines, int hlen) {
+struct header_field *get_header_fields(const char *header_lines, int hlen) {
     int len;
-    char *iter_line, *rest_lines;
+    const char *iter_line, *rest_lines;
     struct header_field header_fields, *header_fields_tail, *new_field;
 
     len = 0;
@@ -52,7 +51,7 @@ struct header_field *get_header_fields(char *header_lines, int hlen) {
 	iter_line = rest_lines;
 	rest_lines = strstr(rest_lines, "\r\n") + 2;
 
-	new_field = calloc(1, sizeof(new_field));
+	new_field = calloc(1, sizeof(struct header_field));
 	new_field->name = iter_line;
 	new_field->value = strstr(iter_line, ": ") + 2;
 	new_field->nlen = new_field->value - new_field->name - 2;
@@ -71,16 +70,16 @@ struct header_field *get_header_fields(char *header_lines, int hlen) {
     return header_fields.next;
 }
 
-void get_host_from_url(const char *url, char **host, int *hostlen) {
-    char *rest;
+void get_host_from_url(const char *url, const char **host, int *hostlen) {
+    const char *rest;
     *host = strstr(url, "://");
     *host += 3;
     rest = strstr(*host, "/");
     *hostlen = rest - *host;
 }
 
-struct header_field *get_header_field(struct header_field *header_fields, const char *name) {
-    struct header_field *iter_field;
+const struct header_field *get_header_field(const struct header_field *header_fields, const char *name) {
+    const struct header_field *iter_field;
 
     for (iter_field = header_fields; iter_field; iter_field = iter_field->next)
 	if (strncmp(name, iter_field->name, iter_field->nlen) == 0)
@@ -92,7 +91,7 @@ struct header_field *get_header_field(struct header_field *header_fields, const 
 void remove_header_field(struct header_field **p_header_fields, const char *name) {
     struct header_field **p_iter_field, *current_field;
     p_iter_field = p_header_fields;
-    while (1) {
+    while (*p_iter_field) {
 	current_field = *p_iter_field;
 	if (strncmp(name, current_field->name, current_field->nlen) == 0) {
 	    *p_iter_field = current_field->next;
@@ -104,8 +103,8 @@ void remove_header_field(struct header_field **p_header_fields, const char *name
     }
 }
 
-void separate_http_message(char *message, int mlen, char **start_line, int *slen, \
-                           char **header_lines, int *hlen, char **body, int *blen) {
+void separate_http_message(const char *message, int mlen, const char **start_line, int *slen, \
+                           const char **header_lines, int *hlen, const char **body, int *blen) {
     *start_line = message;
     *header_lines = strstr(*start_line, "\r\n");
     *header_lines += 2;
@@ -130,10 +129,10 @@ void do_proxy(int clifd, const struct sockaddr_in *cliaddr, int pid) {
     request_len = Read(clifd, request, MAXLINE);
 
     /* get the request line, header lines and entity body */
-    char *request_line, *header_lines, *body;
+    const char *request_line, *header_lines, *body;
     int rlen, hlen, blen;
     separate_http_message(request, request_len, &request_line, &rlen, &header_lines, &hlen, &body, &blen);
-
+    
     /* get header fields */
     struct header_field *header_fields;
     header_fields = get_header_fields(header_lines, hlen);
@@ -143,8 +142,9 @@ void do_proxy(int clifd, const struct sockaddr_in *cliaddr, int pid) {
     remove_header_field(&header_fields, "Proxy-Connection");
 
     /* get the hostname of the server */
-    struct header_field *host_header_field;
-    char *host, *p_host, *method, *url, *version;
+    const struct header_field *host_header_field;
+    char *host;
+    const char *p_host, *method, *url, *version;
     int hostlen, methodlen, urllen, versionlen;
     if ((host_header_field = get_header_field(header_fields, "Host")) == NULL) {
 	get_start_fields(request_line, rlen, &method, &methodlen, &url, &urllen, &version, &versionlen);
@@ -161,7 +161,7 @@ void do_proxy(int clifd, const struct sockaddr_in *cliaddr, int pid) {
     struct sockaddr_in servaddr;
     socklen_t servaddrlen;
     struct addrinfo hints, *result;
-    fprintf(stdout, "---Connect to the server, pid=%d", pid);
+    fprintf(stdout, "---pid=%d, Connect to the server\n", pid);
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -181,7 +181,8 @@ void do_proxy(int clifd, const struct sockaddr_in *cliaddr, int pid) {
     new_request_len = 0;
     bufpos = new_request;
     bufpos = write_to_buf(bufpos, request_line, rlen);
-    new_request_len += rlen;
+    bufpos = write_to_buf(bufpos, "\r\n", 2);
+    new_request_len += rlen + 2;
     for (iter_header_field = header_fields; iter_header_field; iter_header_field = iter_header_field->next) {
 	bufpos = write_to_buf(bufpos, iter_header_field->name, iter_header_field->nlen);
 	bufpos = write_to_buf(bufpos, ": ", 2);
@@ -194,22 +195,22 @@ void do_proxy(int clifd, const struct sockaddr_in *cliaddr, int pid) {
     new_request_len += blen + 2;
 
     /* send the new request to the server */
-    fprintf(stdout, "---Send the new request to the server, pid=%d\n", pid);
+    fprintf(stdout, "---pid=%d, Send the new request to the server\n", pid);
     Write(servfd, new_request, new_request_len);
 
     /* get and send back the response */
     char *response;
     int response_len;
-    fprintf(stdout, "---Send the response back to the client, pid=%d", pid);
+    fprintf(stdout, "---pid=%d, Send the response back to the client\n", pid);
     response = calloc(MAXLINE, sizeof(char));
-    response_len = Read(servfd, response, MAXLINE);
-    while (response_len > 0) {
-	Write(clifd, response, response_len);
-	response_len = Read(servfd, response, MAXLINE);
-    }
 
+    while ((response_len = Read(servfd, response, MAXLINE)) > 0) {
+	fprintf(stdout, "---pid=%d, %d bytes received from the server\n", pid, response_len);
+	Write(clifd, response, response_len);
+    }
+    
     /* close the server socket */
-    fprintf(stdout, "---Close the server socket, pid=%d\n", pid);
+    fprintf(stdout, "---pid=%d, Close the server socket\n", pid);
     close(servfd);
 
     /* release memory */
@@ -249,19 +250,19 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "---Request comes, IP=%s\n", cliaddrip);
 
 	/* process the request in a subprocess */
-	if ((pid=getpid()) == 0) {
+	if ((pid=fork()) == 0) {
 	    pid = getpid();
-	    fprintf(stdout, "---Process the request in a subprocess, pid=%d\n", pid);
+	    fprintf(stdout, "---pid=%d, Process the request in a subprocess\n", pid);
 
-	    fprintf(stdout, "---Close proxy socket in the subprocess, pid=%d\n", pid);
+	    fprintf(stdout, "---pid=%d, Close proxy socket in the subprocess\n", pid);
 	    Close(proxyfd);
 
 	    do_proxy(clifd, &cliaddr, pid);
 
-	    fprintf(stdout, "---Close the client socket in the subprocess, pid=%d\n", pid);
+	    fprintf(stdout, "---pid=%d, Close the client socket in the subprocess\n", pid);
 	    Close(clifd);
 
-	    fprintf(stdout, "---Subprocess exits, pid=%d\n", pid);
+	    fprintf(stdout, "---pid=%d, Subprocess exits\n", pid);
 	    exit(0);
 	}
 

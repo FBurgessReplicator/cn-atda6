@@ -70,6 +70,11 @@ int Accept(int sockfd, struct sockaddr *cliaddr, socklen_t *addrlen) {
     return clisockfd;
 }
 
+void Shutdown(int sockfd, int howto) {
+    if (shutdown(sockfd, howto) < 0)
+	err_sys("shutdown error");
+}
+
 ssize_t Recvfrom(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *from, socklen_t *addrlen) {
     int n;
     if ((n = recvfrom(sockfd, buf, nbytes, flags, from, addrlen)) < 0)

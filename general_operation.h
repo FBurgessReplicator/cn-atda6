@@ -33,19 +33,18 @@
 #define MINILINE 16
 
 /* basic IO wrapper functions */
-
 int Open(const char *pathname, int oflag);
 void Close(int filedes);
 ssize_t Read(int filedes, void *buf, size_t nbytes);
 ssize_t Write(int filedes, const void *buf, size_t nbytes);
 
 /* socket wrapper functions */
-
 int Socket(int family, int type, int protocol);
 void Connect(int sockfd, const struct sockaddr *servaddr, socklen_t addrlen);
 void Bind(int sockfd, const struct sockaddr *myaddr, socklen_t addrlen);
 void Listen(int sockfd, int backlog);
 int Accept(int sockfd, struct sockaddr *cliaddr, socklen_t *addrlen);
+void Shutdown(int sockfd, int howto);
 
 ssize_t Recvfrom(int sockfd, void *buf, size_t nbytes, int flags, struct sockaddr *from, socklen_t *addrlen);
 ssize_t Sendto(int sockfd, const void *buf, size_t nbytes, int flags, const struct sockaddr *to, socklen_t addrlen);
@@ -54,7 +53,6 @@ int Inet_pton(int family, const char *strptr, struct in_addr *addrptr);
 const char *Inet_ntop(int family, const void *addrptr, char *strptr, size_t len);
 
 /* error functions */
-
 void err_sys(const char *, ...);
 
 #endif /* GENERAL_OPERATION_ */
